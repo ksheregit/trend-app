@@ -1,0 +1,9 @@
+.git
+.gitignore
+node_modules
+*.log
+README.md
+docs
+screenshots
+k8s
+buildspec.yml
