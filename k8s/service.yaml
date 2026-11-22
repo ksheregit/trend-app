@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service                # a stable network address in front of the changing pods
+metadata:
+  name: trend-service
+spec:
+  type: LoadBalancer         # on EKS this makes AWS create a public load balancer for you
+  selector:
+    app: trend-app           # send traffic to pods with this label (the same one as in the Deployment)
+  ports:
+    - port: 3000               # the port the outside world uses (plain http://)
+      targetPort: 3000       # forwards to the container's port 3000

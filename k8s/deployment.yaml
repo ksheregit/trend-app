@@ -1,0 +1,31 @@
+apiVersion: apps/v1          # which Kubernetes API handles this object type
+kind: Deployment             # "keep N copies of this app running, and replace any that die"
+metadata:
+  name: trend-app            # the Deployment's name. The Jenkinsfile's `kubectl set image` uses it
+spec:
+  replicas: 2                # run 2 identical pods (copies of the container) for availability
+  selector:
+    matchLabels:
+      app: trend-app         # "manage pods that carry this label"
+  template:                  # the blueprint for each pod
+    metadata:
+      labels:
+        app: trend-app       # MUST match the selector above, or the Deployment finds no pods
+    spec:
+      containers:
+        - name: trend-app    # the container's name. `kubectl set image` targets this too
+          image: kannansudalai/trend-app:latest   # the image you pushed to Docker Hub
+          ports:
+            - containerPort: 3000   # the port nginx listens on inside the container (from nginx.conf)
+          readinessProbe:           # Kubernetes sends traffic only after this check passes
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5  # wait 5 seconds after start before the first check
+          resources:                # tells the scheduler how much CPU/memory to reserve
+            requests:
+              cpu: 50m              # 50 millicores = 5% of one CPU
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
