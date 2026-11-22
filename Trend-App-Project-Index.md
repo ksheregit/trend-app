@@ -39,9 +39,6 @@
 - `terraform/` — contains the infrastructure configuration for AWS resources.
 - `.gitignore` and `.dockerignore` — exclude files from Git and Docker build contexts respectively.
 
-> **Documentation note:** This index follows the current Jenkins + Docker Hub workflow described in the project files. It does not include the older CodeBuild/CodePipeline + ECR workflow shown in the earlier project report.
-
-
 ## Deployment outcome
 
 - The EKS cluster was created separately using `eksctl`, not through the Terraform configuration.
