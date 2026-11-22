@@ -7,8 +7,12 @@ This project packages the supplied React-based Trend application into a Docker i
 The application is served by Nginx on **port 3000**.
 
 **Source application:** https://github.com/Vennilavanguvi/Trend.git  
-**GitHub project repository:** Add your project repository URL here  
-**Docker Hub image:** `kannansudalai/trend-app`
+**Project source repository:** https://github.com/ksheregit/trend-app  
+**Docker Hub image:** `kannansudalai/trend-app`  
+**AWS Region:** `ap-south-1`  
+**EKS cluster:** `trend-cluster`  
+**Kubernetes version:** `1.35`  
+**Application endpoint during validation:** http://a276f25b918c54f508bfdb8845e567a0-2014561784.ap-south-1.elb.amazonaws.com:3000/
 
 ## 2. Architecture and workflow
 
@@ -159,13 +163,9 @@ The build-number tag provides traceability for each pipeline run. The `latest` t
 
 ## 7. AWS infrastructure with Terraform
 
-The `terraform/` directory defines the AWS infrastructure used by this deployment. Based on the supplied Terraform configuration, it includes:
+The `terraform/` directory contains infrastructure-as-code configuration for the AWS networking, IAM and Jenkins host components. The project report records Terraform being used to provision the VPC, IAM resources and Jenkins EC2 instance.
 
-- VPC and public/private subnets across Availability Zones
-- Network routing resources defined by the VPC module
-- IAM role, policies and instance profile for Jenkins
-- Jenkins EC2 instance and its security group
-- EKS cluster and managed worker node group, if the `eks.tf` configuration is included in the directory
+The EKS cluster used for the application deployment was created separately with `eksctl`, not by the Terraform apply documented in the project execution steps. The cluster was created in `ap-south-1` with Kubernetes `1.35` and a managed node group named `workers`, using two `t3.medium` nodes.
 
 ### Terraform workflow
 
@@ -197,6 +197,16 @@ Keep `terraform.tfvars`, state files and saved plan files out of Git. Keep `.ter
 In the supplied `vpc.tf`, `enable_nat_gateway = false` while the comments describe private-subnet outbound access through NAT. With NAT disabled, private EKS nodes may not have outbound internet access to pull images from Docker Hub unless another egress path or the required private endpoints are configured. Verify the intended network design before provisioning.
 
 Also verify that the `eks.tf` file is present and that its module/provider version constraints are compatible with the versions declared in `versions.tf`.
+
+### EKS cluster creation with eksctl
+
+The cluster was created with the following command:
+
+```bash
+eksctl create cluster --name trend-cluster --region ap-south-1 --version 1.35 --nodegroup-name workers --node-type t3.medium --nodes 2
+```
+
+The creation output confirmed that the `trend-cluster` control plane and the two-node `workers` managed node group were ready. The cluster creation also installed the `kube-proxy`, `coredns`, `vpc-cni` and `metrics-server` add-ons. At the time of creation, `eksctl` reported that the local `kubectl` executable was missing; the cluster itself was nevertheless reported as ready. `kubectl` was subsequently required on the machine running deployment commands.
 
 ## 8. Jenkins-to-EKS access
 
@@ -275,7 +285,7 @@ Configure a webhook in the GitHub repository pointing to:
 http://<JENKINS_PUBLIC_IP>:8080/github-webhook/
 ```
 
-Select the push event and enable the webhook. Replace the placeholder with the actual Jenkins public IP or a stable DNS name. Ensure the Jenkins endpoint is reachable from GitHub; for a production setup, use HTTPS and restrict access appropriately.
+Select the push event and enable the webhook. The webhook endpoint was configured against the Jenkins server used for this project. Ensure the Jenkins endpoint is reachable from GitHub; for a production setup, use HTTPS and restrict access appropriately.
 
 ## 11. Verification checklist
 
@@ -307,11 +317,17 @@ Also verify that:
 - The application loads through the external Service endpoint on port 3000.
 - A new GitHub push triggers another Jenkins build.
 
-## 12. Monitoring
+## 12. Monitoring with Blackbox Exporter, Prometheus and Grafana
 
-The Terraform outputs shown in the project configuration include Jenkins, Prometheus and Grafana URLs. If Prometheus and Grafana are installed and configured on the Jenkins/monitoring EC2 instance, use them to inspect the monitoring setup and capture relevant dashboard screenshots.
+The project uses Blackbox Exporter, Prometheus and Grafana to monitor endpoint availability:
 
-Document the actual exporters, scrape targets, dashboards and alerts that are configured. Do not describe monitoring as complete unless it has been installed and verified.
+1. **Blackbox Exporter** probes the configured target endpoint and exposes probe metrics.
+2. **Prometheus** scrapes the Blackbox Exporter and collects those metrics.
+3. **Grafana** queries Prometheus and visualizes the target availability as **UP** or **DOWN**.
+
+In this setup, Blackbox Exporter performs the probe; Prometheus collects the resulting metrics; Grafana displays the status. This is endpoint-availability monitoring, not by itself a complete measure of host CPU, memory, disk or Kubernetes cluster health.
+
+Capture the Grafana dashboard showing the monitored target's UP/DOWN status and include it as project evidence. The monitoring evidence documents the configured target availability dashboard.
 
 ## 13. Evidence and submission
 
@@ -338,17 +354,12 @@ Include the following evidence in the repository or in the submission document:
 - Review NAT, EC2, EKS, EBS and load balancer costs.
 - Destroy temporary resources when the assignment is complete, after saving the required evidence.
 
-## 15. Project status
+## 15. Deployment outcome and cleanup
 
-Update this section before submission:
+The application was successfully deployed to the EKS cluster and verified through the external Kubernetes LoadBalancer endpoint:
 
-- [ ] GitHub repository URL added
-- [ ] Docker Hub image URL added
-- [ ] Terraform infrastructure successfully provisioned
-- [ ] Jenkins pipeline successful
-- [ ] GitHub webhook trigger verified
-- [ ] EKS rollout successful
-- [ ] Application URL added
-- [ ] Load balancer ARN added
-- [ ] Monitoring evidence added, if implemented
-- [ ] Screenshots/evidence attached
+http://a276f25b918c54f508bfdb8845e567a0-2014561784.ap-south-1.elb.amazonaws.com:3000/
+
+The EKS cluster and associated AWS resources were deleted after deployment validation and evidence collection to avoid ongoing infrastructure charges. The endpoint above was the application URL during validation and is no longer expected to be reachable after cleanup. The load balancer ARN was not retained in the project notes.
+
+The project evidence includes the successful cluster creation output, Kubernetes deployment and service checks, Jenkins pipeline execution, application browser validation and the monitoring dashboard. The repository and Docker Hub image remain available at the links listed in the project overview.
