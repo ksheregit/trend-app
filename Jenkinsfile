@@ -2,7 +2,7 @@ pipeline {
     agent any    // run on this Jenkins server itself (it has docker, kubectl and aws installed)
 
     environment {
-        IMAGE   = "<dockerhub-user>/trend-app"   // your Docker Hub repo
+        IMAGE   = "kannansudalai/trend-app"   // your Docker Hub repo
         TAG     = "${env.BUILD_NUMBER}"          // 1, 2, 3 ... every build gets a unique tag, so you can tell versions apart
         CLUSTER = "trend-cluster"                // must match eks_cluster_name in Terraform
         REGION  = "ap-south-1"
