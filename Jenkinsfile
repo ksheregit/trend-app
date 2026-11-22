@@ -26,7 +26,7 @@ pipeline {
             steps {
                 // Reads the Docker Hub username and token from Jenkins credentials.
                 // The ID below must match the credential ID you created in Jenkins.
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                withCredentials([usernamePassword(credentialsId: 'dockerhub',
                                                   usernameVariable: 'DH_USER',
                                                   passwordVariable: 'DH_PASS')]) {
                     sh '''
